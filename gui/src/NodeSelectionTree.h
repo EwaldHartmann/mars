@@ -23,7 +23,6 @@
  * \brief A widget for node selection with different selection options. 
  */
 
-
 #ifndef NODE_SELECTION_TREE_H
 #define NODE_SELECTION_TREE_H
 

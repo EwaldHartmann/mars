@@ -37,6 +37,7 @@
 #define GUI_ACTION_JOYSTICK            106
 #define GUI_ACTION_DISTANCE            107
 #define GUI_ACTION_SELECTION           108
+#define GUI_ACTION_GENERIC_TREE        109
 #define GUI_ACTION_PARAMETER_WIDGET    201
 #define GUI_ACTION_DOCK_WINDOWS        202
 #define GUI_ACTION_TILE_WINDOWS        203 // tiling not implemented

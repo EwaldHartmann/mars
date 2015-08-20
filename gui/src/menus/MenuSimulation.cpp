@@ -136,6 +136,11 @@ namespace mars {
       mainGui->addGenericMenuAction("../Simulation/Graphics Options",
                                     GUI_ACTION_EDIT_GRAPHICS,
                                     (main_gui::MenuInterface*) this, 0);
+      //used for generic widget
+      mainGui->addGenericMenuAction("../Simulation/", 0, NULL, 0, "", 0, -1); // separator
+      mainGui->addGenericMenuAction("../Simulation/Generic View",
+                                    GUI_ACTION_GENERIC_TREE,
+                                    (main_gui::MenuInterface*) this, 0);
   
       if (control->cfg) {
         cfg_manager::cfgPropertyStruct r_path;
@@ -154,6 +159,8 @@ namespace mars {
       (void)checked;
 
       switch (action) {
+      
+      case GUI_ACTION_GENERIC_TREE: menu_genericView(); break;
       case GUI_ACTION_NODE_TREE: menu_nodes(); break;
       case GUI_ACTION_JOINT_TREE: menu_joints(); break;
       case GUI_ACTION_LIGHT_TREE: menu_lights(); break;
@@ -447,8 +454,21 @@ namespace mars {
         delete (QObject*)*toClose;
         *toClose = NULL;
       }
-
     }
+      
+     void MenuSimulation::menu_genericView() {
+       //close and delete existing dialog
+      if (dim != NULL) {
+        if(dim->pDialog) 
+          dim->pDialog->close();
+        delete dim;
+        dim = NULL;
+      }
+      //create dialog
+      dim = new Dialog_Import_Mesh(control, mainGui);
+      mainGui->addDockWidget((void*)dim->pDialog);
+      dim->show();
+      }
 
   } // end of namespace gui
 } // end of namespace mars

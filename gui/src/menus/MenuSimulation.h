@@ -94,6 +94,7 @@ namespace mars {
       void menu_rescaleEnvironment();
       void menu_graphicsOptions();  
       void menu_motorControl();
+      void menu_genericView();
 
     private:
       interfaces::ControlCenter *control;
