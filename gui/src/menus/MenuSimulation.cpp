@@ -458,16 +458,16 @@ namespace mars {
       
      void MenuSimulation::menu_genericView() {
        //close and delete existing dialog
-      if (dim != NULL) {
-        if(dim->pDialog) 
-          dim->pDialog->close();
-        delete dim;
-        dim = NULL;
+      if (dgv != NULL) {
+        if(dgv->pDialog) 
+          dgv->pDialog->close();
+        delete dgv;
+        dgv = NULL;
       }
       //create dialog
-      dim = new Dialog_Import_Mesh(control, mainGui);
-      mainGui->addDockWidget((void*)dim->pDialog);
-      dim->show();
+      dgv = new Dialog_Generic_View(control, mainGui);
+      mainGui->addDockWidget((void*)dgv->pDialog);
+      dgv->show();
       }
 
   } // end of namespace gui

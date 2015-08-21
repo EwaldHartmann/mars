@@ -50,6 +50,7 @@
 #include "Dialog_Rescale_Environment.h"
 #include "Dialog_Graphics_Options.h"
 #include "Dialog_Motor_Control.h"
+#include "Dialog_Generic_View.h"
 
 namespace mars {
 
@@ -117,6 +118,7 @@ namespace mars {
       Dialog_Rescale_Environment *dre;
       Dialog_Graphics_Options *dgo;
       Dialog_Motor_Control *dmc;
+      Dialog_Generic_View *dgv;
 
     private slots:
       void closeWidget(void* widget);
