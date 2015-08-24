@@ -111,6 +111,7 @@ set(HEADERS
         src/dialogs/DialogMotors.h
         src/dialogs/DialogNodes.h
         src/dialogs/DialogSensors.h
+        src/dialogs/Dialog_Generic_View.h
         
         src/dialogs/CameraConfig/CameraConfig.h
         src/dialogs/CameraConfig/CameraConfigurator.h
@@ -161,6 +162,8 @@ set(QT_MOC_HEADER
         src/dialogs/DialogMotors.h
         src/dialogs/DialogNodes.h
         src/dialogs/DialogSensors.h
+        src/dialogs/Dialog_Generic_View.h
+        
 
         src/dialogs/CameraConfig/CameraConfigurator.h
         src/dialogs/CameraConfig/CameraConfiguratorGUI.h
@@ -215,6 +218,7 @@ set(TARGET_SRC
             src/dialogs/DialogMotors.cpp
             src/dialogs/DialogNodes.cpp
             src/dialogs/DialogSensors.cpp
+            src/dialogs/Dialog_Generic_View.cpp
 
             src/dialogs/CameraConfig/CameraConfig.cpp
             src/dialogs/CameraConfig/CameraConfigurator.cpp

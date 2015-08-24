@@ -47,6 +47,7 @@ namespace mars {
       daf = NULL; // dialog add force
       dat = NULL; // dialog apply torque
       dim = NULL; // dialog import mesh 
+      dgv = NULL; // dialog generic treeview
 
       dd = NULL; // distance
       nst = NULL; // selection
@@ -457,7 +458,7 @@ namespace mars {
     }
       
      void MenuSimulation::menu_genericView() {
-       //close and delete existing dialog
+       /*//close and delete existing dialog
       if (dgv != NULL) {
         if(dgv->pDialog) 
           dgv->pDialog->close();
@@ -467,8 +468,19 @@ namespace mars {
       //create dialog
       dgv = new Dialog_Generic_View(control, mainGui);
       mainGui->addDockWidget((void*)dgv->pDialog);
-      dgv->show();
+      dgv->show();*/
+      if (dgv != NULL) {
+        dgv->close();
       }
+      else {
+        
+        dgv = new Dialog_Generic_View(control, mainGui);
+        mainGui->addDockWidget((void*)dgv);
+        connect(dgv, SIGNAL(closeSignal(void*)),
+                this, SLOT(closeWidget(void*)));
+        dgv->show();
+      }
+     }
 
   } // end of namespace gui
 } // end of namespace mars
