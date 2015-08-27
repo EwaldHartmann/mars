@@ -28,235 +28,287 @@
 #include <QPushButton>
 #include <QMessageBox>
 #include <QHBoxLayout>
+#include <QVBoxLayout>
+#include <QScrollArea>
+#include <QGridLayout>
 
 namespace mars {
   namespace gui {
-
-    Dialog_Generic_View::Dialog_Generic_View(interfaces::ControlCenter *c, main_gui::GuiInterface *gui) :
-      main_gui::BaseWidget(0, c->cfg, "Dialog_Generic_View"),
-      pDialog(new main_gui::PropertyDialog(NULL)), mainGui(gui) {
-
-      control = c;
+    Dialog_Generic_View::Dialog_Generic_View(interfaces::ControlCenter *c,
+                                         QWidget *parent) : 
+      main_gui::BaseWidget(parent, c->cfg, "Dialog_Generic_View"),
+      pDialog(new main_gui::PropertyDialog(this)) {
       filled = false;
-      oldFocus = NULL;
+      control = c;
 
-      if(control->graphics) {
-        control->graphics->addEventClient((interfaces::GraphicsEventClient*)this);
-      }
+      control->graphics->addEventClient((interfaces::GraphicsEventClient*)this);
+      control->nodes->getListNodes(&simNodes);
 
-      this->setWindowTitle(tr("Dialog Generic View"));
-
+      this->setWindowTitle(tr("Node Selection"));
       pDialog->setPropCallback(this);
-      pDialog->setViewButtonVisibility(false);
-      pDialog->setViewMode(main_gui::TreeViewMode);
-      pDialog->clearButtonBox();
+      pDialog->hideAllButtons();
 
-      QHBoxLayout *hLayout = new QHBoxLayout;
-      hLayout->setContentsMargins(1, 1, 1, 1);
-      this->setLayout(hLayout);
-      hLayout->addWidget(pDialog);
+      QStringList enumNames;
+      enumNames << "Tree Mode" << "List Mode";
+      node_view_mode = 
+        pDialog->addGenericProperty("../Node View", QtVariantPropertyManager::enumTypeId(), 
+                                    0, NULL, &enumNames);
+      enumNames.clear();
+      enumNames << "Single" << "Recursive";
+      node_selection_mode = 
+        pDialog->addGenericProperty("../Selection mode", QtVariantPropertyManager::enumTypeId(),
+                                    0, NULL, &enumNames);
+      enumNames.clear();
+      for (unsigned int i = 0; i < simNodes.size(); i++)
+        enumNames << QString::number(simNodes[i].index) + ":" + QString::fromStdString(simNodes[i].name);
+      root = 
+        pDialog->addGenericProperty("../Root node", QtVariantPropertyManager::enumTypeId(),
+                                    0, NULL, &enumNames);
+  
+      select_allowed = true;
 
-      stateButton = pDialog->addGenericButton("State", this, SLOT(on_node_state()));
-      addButton = pDialog->addGenericButton("Add", this, SLOT(on_add_node()));
-      removeButton = pDialog->addGenericButton("Remove", this, 
-                                               SLOT(on_remove_node()));
-      pDialog->addGenericButton("New", this, SLOT(on_new_node()));
-      stateButton->hide();
-      removeButton->hide();
-      addButton->hide();
+      treeWidget = new QTreeWidget(this);
+      treeWidget->setHeaderHidden(true);
+      treeWidget->setSelectionMode(QAbstractItemView::ExtendedSelection);
+      connect(treeWidget, SIGNAL(itemSelectionChanged()), this, SLOT(selectNodes()));
+      connect(treeWidget, SIGNAL(itemSelectionChanged()), this, SIGNAL(itemSelectionChanged()));
+      
+      label = new QLabel("This is only a placeholder, \n soon this should be a nice infoview"); //instead of this label there needs to be the info functionality
+     
+      line = new QFrame(this);
+      line->setFrameShape(QFrame::VLine); // Horizontal line
+      line->setFrameShadow(QFrame::Sunken);
+      line->setLineWidth(1);
+      
 
-      control->nodes->getListNodes(&allNodes);
-      for (unsigned int i = 0; i<allNodes.size(); i++) {
-        QtVariantProperty *tmp = 
-          pDialog->addGenericProperty("../"+allNodes[i].name,
-                                      QtVariantPropertyManager::groupTypeId(),
-                                      0);
-        allNodes_p.push_back(tmp);
-        NodeHandler *den = new NodeHandler(tmp, allNodes[i].index, pDialog, control, NodeTree::EditMode);
-        allDialogs.push_back(den);
-      }						  
+      if (simNodes.size())
+        createTree(simNodes[0].index);
+
+      QGridLayout *layout = new QGridLayout;
+      layout->addWidget(treeWidget, 0, 0);
+      layout->addWidget(pDialog, 1, 0);
+      layout->setRowStretch(0, 1);
+      layout->addWidget(line, 0, 2);
+      layout->addWidget(label, 0, 3);
+      setLayout(layout);
       filled = true;
     }
+
+
 
     Dialog_Generic_View::~Dialog_Generic_View() {
-      if(control->graphics) {
-        control->graphics->removeEventClient((GraphicsEventClient*)this);
-      }
-
-      for (unsigned int i = 0; i < newDialogs.size(); i++) 
-        delete newDialogs[i];
-      for (unsigned int i = 0; i < allDialogs.size(); i++) 
-        delete allDialogs[i];
-  
-      allNodes_p.clear();
-      allDialogs.clear();
-      newNodes_p.clear();
-      newDialogs.clear();
       delete pDialog;
-    }
 
-    void Dialog_Generic_View::valueChanged(QtProperty* property, const QVariant& value)
-    {
-      if (filled == false) 
-        return;
-
-      for (unsigned int i = 0; i < newNodes_p.size(); i++)
-        if (pDialog->currentItem() == newNodes_p[i]) {
-          newDialogs[i]->valueChanged(property, value);
-          return;
-        }
-      for (unsigned int i = 0; i < allNodes_p.size(); i++)
-        if (pDialog->currentItem() == allNodes_p[i]) {
-          allDialogs[i]->valueChanged(property, value);
-          return;
-        }  
-
-    }
-
-    void Dialog_Generic_View::topLevelItemChanged(QtProperty *property) {
-      if (filled == false)
-        return;
-
-      if (property == oldFocus)
-        return;
-      oldFocus = property;
-
-      if (allNodes_p.size() == 0 && newNodes_p.size() == 0) {
-        removeButton->hide();
-        addButton->hide();
-        stateButton->hide();
-      } else     
-        removeButton->show();
-
-      for (unsigned int i = 0; i < newNodes_p.size(); i++)
-        newDialogs[i]->focusOut();
-
-      for (unsigned int i = 0; i < allNodes_p.size(); i++)
-        if (!(allDialogs[i]->isSelected()))
-          allDialogs[i]->focusOut();
-  
-
-      for (unsigned int i = 0; i < newNodes_p.size(); i++)
-        if (property == newNodes_p[i]) {
-          newDialogs[i]->focusIn();
-          stateButton->hide();
-          addButton->show();
-          return;
-        }
-      for (unsigned int i = 0; i < allNodes_p.size(); i++)
-        if (property == allNodes_p[i] && !(allDialogs[i]->isSelected())) {
-          allDialogs[i]->focusIn();
-          stateButton->show();
-          addButton->hide();
-          return;
-        }
-      addButton->hide();
-      stateButton->hide();
-    }
-
-
-    void Dialog_Generic_View::on_new_node() {
-      filled = false;
-      static int index = 0;
-      std::string newName = "NewNode" + QString::number(index++).toStdString();
-      QtVariantProperty *tmp = 
-        pDialog->addGenericProperty("../" + newName,
-                                    QtVariantPropertyManager::groupTypeId(),
-                                    0);
-      newNodes_p.push_back(tmp);
-      NodeHandler *dnn = new NodeHandler(tmp, 0, pDialog, control, NodeTree::PreviewMode);
-      newDialogs.push_back(dnn);
-      filled = true;
-
-      pDialog->setCurrentItem(tmp);
-    }
-
-    void Dialog_Generic_View::on_remove_node() {
-      filled = false;
-
-      for (unsigned int i = 0; i < newNodes_p.size(); i++)
-        if (pDialog->currentItem() == newNodes_p[i]) {
-          delete newDialogs[i];
-          newDialogs.erase(newDialogs.begin() + i);
-          newNodes_p.erase(newNodes_p.begin() + i);
-          break;
-        }
-      
-      for (unsigned int i = 0; i < allNodes_p.size(); i++)
-        if (allNodes_p[i] == pDialog->currentItem()) {
-          control->nodes->removeNode(allNodes[i].index);
-          allNodes.erase(allNodes.begin() + i);
-          delete allDialogs[i];
-          allDialogs.erase(allDialogs.begin() + i);
-          allNodes_p.erase(allNodes_p.begin() + i);
-          break;
-        }
-
-      filled = true;
-
-      if (allNodes_p.size() == 0 && newNodes_p.size() == 0) {
-        removeButton->hide();
-        addButton->hide();
-        stateButton->hide();
-      } else if (allNodes_p.size() > 0) {
-        pDialog->setCurrentItem(allNodes_p[0]);
-      } else if (newNodes_p.size() > 0) {
-        pDialog->setCurrentItem(newNodes_p[0]);
+      control->graphics->removeEventClient(this);
+      for (unsigned int i = 0; i < simNodes.size(); i++) {
+        int draw_id = control->nodes->getDrawID(simNodes[i].index);
+        control->graphics->setDrawObjectSelected(draw_id, false); 
       }
- 
     }
 
-    void Dialog_Generic_View::on_add_node() {
-      filled = false;
-      for (unsigned int i = 0; i < newNodes_p.size(); i++)
-        if (pDialog->currentItem() == newNodes_p[i]) {
-          if ((newDialogs[i]->accept()) != 0) {
-            on_remove_node();
-          } else {
-            allNodes_p.push_back(newNodes_p[i]);
-            allDialogs.push_back(newDialogs[i]);
-            oldFocus = NULL;
-            newNodes_p.erase(newNodes_p.begin() + i);
-            newDialogs.erase(newDialogs.begin() + i);
-            topLevelItemChanged(allNodes_p.back());
-          }
-          break;
+    void Dialog_Generic_View::valueChanged(QtProperty *property,
+                                         const QVariant &value) {
+      if (filled == false) return;
+
+      if (property == node_view_mode) {
+        if (value.toInt() == 0) {
+          node_selection_mode->setEnabled(true);
+          root->setEnabled(true);
+          reset();
+          QString str_value = root->attributeValue("enumNames").toStringList().at(value.toInt());
+          int n = str_value.indexOf(":");
+          createTree(str_value.left(n).toULong());
+        } else {
+          node_selection_mode->setEnabled(false);
+          root->setEnabled(false);
+          reset();
+          createList();
         }
-      control->nodes->getListNodes(&allNodes);
+      }
 
-      filled = true;
-      addButton->hide();
-      stateButton->show();
+      else if (property == root) {
+        reset();
+        QString str_value = root->attributeValue("enumNames").toStringList().at(value.toInt());
+        int n = str_value.indexOf(":");
+        createTree(str_value.left(n).toULong());  
+      }
     }
+
+    void Dialog_Generic_View::fill(unsigned long id, QTreeWidgetItem *current) {
+      QStringList temp;
+
+      if (current == NULL) // this is a top level node
+        for (unsigned int i = 0; i < simNodes.size(); i++)
+          if (simNodes[i].index == id) {
+            bool found = false;
+            for (unsigned int k = 0; k < present.size() && !found; k++)
+              if (present[k] == id)
+                found = true;
+            if (found == false) {
+              temp << QString::number(id) + ":" + QString::fromStdString(simNodes[i].name);
+              current = new QTreeWidgetItem(temp);
+              treeWidget->addTopLevelItem(current);
+              present.push_back(id);
+            }
+          }
+  
+      std::vector<unsigned long> children = control->nodes->getConnectedNodes(id);
+      std::vector<unsigned long> newNodes;
+  
+      for (unsigned int i = 0; i < children.size(); i++)  {
+        bool found = false;
+        for (unsigned int k = 0; k < present.size() && !found; k++)
+          if (present[k] == children[i])
+            found = true;
+        if (found == false) {
+          present.push_back(children[i]);
+          newNodes.push_back(children[i]);
+        }
+      }
+
+      for (unsigned int i = 0; i < newNodes.size(); i++) 
+        for (unsigned int j = 0; j < simNodes.size(); j++)
+          if (newNodes[i] == simNodes[j].index) {
+            temp.clear();
+            temp << QString::number(newNodes[i]) + ":" + QString::fromStdString(simNodes[j].name);
+            QTreeWidgetItem *next = new QTreeWidgetItem(temp); 
+            current->addChild(next);
+            fill(newNodes[i], next);
+          }
+    }
+
+    
+
+    void Dialog_Generic_View::createTree(unsigned long root)  {
+      present.clear();
+      control->nodes->getListNodes(&simNodes);
+      unsigned int v_index = 0;
+  
+      for (v_index = 0; v_index < simNodes.size(); v_index++)
+        if (simNodes[v_index].index == root)
+          break;
+
+      for (unsigned int i = v_index; i < simNodes.size(); i++)
+        fill(simNodes[i].index);
+
+      for (unsigned int i = 0; i < v_index; i++)
+        fill(simNodes[i].index);
+
+      treeWidget->expandAll();
+    }
+
+
+    void Dialog_Generic_View::createList(void)
+    {
+      control->nodes->getListNodes(&simNodes);
+      for (unsigned int i = 0; i < simNodes.size(); i++) {
+        QStringList temp;
+        temp << QString::number(simNodes[i].index) + ":" + QString::fromStdString(simNodes[i].name);
+        QTreeWidgetItem *current = new QTreeWidgetItem(temp);
+        treeWidget->addTopLevelItem(current);
+      }
+    }
+
+
+    void Dialog_Generic_View::reset(void)
+    {
+      while (treeWidget->topLevelItemCount() > 0)
+        (void)treeWidget->takeTopLevelItem(0);
+      present.clear();
+    }
+
+
+    void Dialog_Generic_View::selectRecursively(QTreeWidgetItem *current, bool mode)
+    {
+      if (current != NULL)
+        for (int i = 0; i < current->childCount(); i++) {
+          current->child(i)->setSelected(mode);
+          int n = current->child(i)->text(0).indexOf(":");
+          unsigned long node_id = current->child(i)->text(0).left(n).toULong();
+          control->graphics->setDrawObjectSelected(control->nodes->getDrawID(node_id), mode);
+          selectRecursively(current->child(i), mode);
+        }
+    }
+
+
+    QTreeWidgetItem* Dialog_Generic_View::findByNodeId(unsigned long id, QTreeWidgetItem* parent) {
+      if (parent == NULL) { // top level
+        for (int i = 0; i < treeWidget->topLevelItemCount(); i++) {
+          if (treeWidget->topLevelItem(i)->text(0).startsWith(QString::number(id) + ":"))
+            return treeWidget->topLevelItem(i);
+          else {
+            QTreeWidgetItem *retval = findByNodeId(id, treeWidget->topLevelItem(i));
+            if (retval != NULL)
+              return retval;
+          }
+        }
+      } else {
+        for (int i = 0; i < parent->childCount(); i++) {
+          if (parent->child(i)->text(0).startsWith(QString::number(id) + ":"))
+            return parent->child(i);
+          else {
+            QTreeWidgetItem *retval = findByNodeId(id, parent->child(i));
+            if (retval != NULL)
+              return retval;
+          }
+        }
+      }
+  
+      return NULL;
+    }
+
 
 
     void Dialog_Generic_View::selectEvent(unsigned long int id, bool mode) {
-      for (unsigned int i = 0; i < allNodes.size() ; i++)
-        if (allNodes[i].index == id) {
-          if (mode) {
-            allDialogs[i]->setSelected(true);
-            allDialogs[i]->focusIn();
-            pDialog->expandTree(allNodes_p[i]);
-            pDialog->expandTree(allDialogs[i]->getGeometryProp());
-            pDialog->expandTree(allDialogs[i]->getPositionProp());
-            pDialog->expandTree(allDialogs[i]->getRotationProp());	
-          }	else {
-            allDialogs[i]->focusOut();
-            allDialogs[i]->setSelected(false);
-          }
-          break;
-        }
+      if (select_allowed == false)
+        return;
+  
+      select_allowed = false;
+      QTreeWidgetItem *chosen = findByNodeId(id);
+      chosen->setSelected(mode);
+      if (node_selection_mode->value().toInt() == 1)
+        selectRecursively(chosen, mode);
+      select_allowed = true;
     }
 
-    void Dialog_Generic_View::on_node_state() {
-      filled = false;
-      for (unsigned int i = 0; i < allNodes_p.size(); i++)
-        if (allNodes_p[i] == pDialog->currentItem()) {
-          allDialogs[i]->showState();
-          break;
-        }
-      filled = true;
+    void Dialog_Generic_View::selectNodes(void) {
+      if (select_allowed == false)
+        return;
+      select_allowed = false;
+  
+      QList<QTreeWidgetItem*> selectedItems = treeWidget->selectedItems();
+
+      if (node_selection_mode->value().toInt() == 1)   
+        for (unsigned int i = 0; i < (unsigned int)selectedItems.size(); i++) 
+          selectRecursively(selectedItems[i], true);
+  
+      std::vector<unsigned long> selectedIds = selectedNodes();
+  
+      for (unsigned int i = 0; i < simNodes.size(); i++) {
+        bool found = false;
+        int draw_id = control->nodes->getDrawID(simNodes[i].index);
+        if (!draw_id)
+          continue;
+        for (unsigned int j = 0; j < selectedIds.size() && !found; j++) 
+          if (simNodes[i].index == selectedIds[j])
+            found = true;
+        control->graphics->setDrawObjectSelected(draw_id, found);
+      }
+      select_allowed = true;
     }
+
+
+    std::vector<unsigned long> Dialog_Generic_View::selectedNodes(void)
+    {
+      QList<QTreeWidgetItem*> selectedItems = treeWidget->selectedItems();
+      std::vector<unsigned long> selectedIds;
+      for (unsigned int i = 0; i < (unsigned int)selectedItems.size(); i++) {
+        int n = selectedItems[i]->text(0).indexOf(":");
+        selectedIds.push_back(selectedItems[i]->text(0).left(n).toULong());
+      }
+      return selectedIds;
+    }
+
 
     void Dialog_Generic_View::closeEvent(QCloseEvent* event) {
       (void)event;

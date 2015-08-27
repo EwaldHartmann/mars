@@ -458,7 +458,7 @@ namespace mars {
     }
       
      void MenuSimulation::menu_genericView() {
-       /*//close and delete existing dialog
+      //close and delete existing dialog
       if (dgv != NULL) {
         if(dgv->pDialog) 
           dgv->pDialog->close();
@@ -466,21 +466,24 @@ namespace mars {
         dgv = NULL;
       }
       //create dialog
-      dgv = new Dialog_Generic_View(control, mainGui);
+      dgv = new Dialog_Generic_View(control); // Dialog_Generic_View(control, mainGui)
       mainGui->addDockWidget((void*)dgv->pDialog);
-      dgv->show();*/
+      dgv->show();
+     /*}
       if (dgv != NULL) {
-        dgv->close();
+        if(dgv->pDialog) 
+          dgv->pDialog->close();
+        delete dgv;
+        dgv = NULL;
       }
       else {
-        
-        dgv = new Dialog_Generic_View(control, mainGui);
-        mainGui->addDockWidget((void*)dgv);
+        dgv = new Dialog_Generic_View(control);
+        mainGui->addDockWidget(dgv);
         connect(dgv, SIGNAL(closeSignal(void*)),
                 this, SLOT(closeWidget(void*)));
         dgv->show();
-      }
-     }
-
+      }*/
+    }
+     
   } // end of namespace gui
 } // end of namespace mars

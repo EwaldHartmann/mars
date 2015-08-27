@@ -32,65 +32,61 @@
 #include <mars/main_gui/PropertyDialog.h>
 #include <mars/interfaces/sim/ControlCenter.h>
 #include <mars/interfaces/graphics/GraphicsEventClient.h>
+#include <mars/interfaces/core_objects_exchange.h>
 #include "NodeHandler.h"
+#include <QTreeWidget>
+#include <QLabel>
+#include <QFrame>
+
 
 namespace mars {
-
-  namespace main_gui {
-    class GuiInterface;
-  }
-
   namespace gui {
 
-    class Dialog_Generic_View : public main_gui::BaseWidget,
-				public main_gui::PropertyCallback,
-				public interfaces::GraphicsEventClient {
-
+  class Dialog_Generic_View : public main_gui::BaseWidget,
+                              public main_gui::PropertyCallback,
+                              public interfaces::GraphicsEventClient {
       Q_OBJECT
-    
+
       public:
-      Dialog_Generic_View(interfaces::ControlCenter *c, main_gui::GuiInterface *gui);
+      Dialog_Generic_View(interfaces::ControlCenter *c, QWidget *parent = NULL);
       ~Dialog_Generic_View();
   
       main_gui::PropertyDialog *pDialog;  
   
-      /**
-       * handles selection of a node in the graphics window
-       */
       virtual void selectEvent(unsigned long int id, bool mode);
-    
+
+      // returns the ids of the selected nodes
+      std::vector<unsigned long> selectedNodes(void);
+  
     private:
+      interfaces::ControlCenter *control;
+      bool filled, select_allowed;
+      QtVariantProperty *node_view_mode, *node_selection_mode, *root ;
+  
+      std::vector<interfaces::core_objects_exchange> simNodes;
+      std::vector<unsigned long> present;
 
-      // handles new focus
-      virtual void topLevelItemChanged(QtProperty* current);
-      virtual void valueChanged(QtProperty *property, const QVariant &value);
-
-      QtProperty *oldFocus;
-      bool filled;
-      QPushButton *stateButton;
-      QPushButton *addButton;
-      QPushButton *removeButton;
-      std::vector<NodeHandler*> allDialogs; // all handler classes in edit mode
-      std::vector<NodeHandler*> newDialogs; // handler classes in previewmode
-      std::vector<QtProperty*> allNodes_p; // all top level properties in edit mode
-      std::vector<QtProperty*> newNodes_p; // top level properties for nodes in preview mode
-      std::vector<interfaces::core_objects_exchange> allNodes; // all simulation nodes
-      interfaces::ControlCenter* control;
-      main_gui::GuiInterface *mainGui;
+      QTreeWidget *treeWidget;
+      QLabel *label;
+      QFrame *line;
 
       void closeEvent(QCloseEvent* event);
-
+      void fill(unsigned long id, QTreeWidgetItem *current = NULL);
+      void selectRecursively(QTreeWidgetItem *current, bool mode);
+      QTreeWidgetItem* findByNodeId(unsigned long id, QTreeWidgetItem *parent = NULL);
+      void reset(void);
+      void createTree(unsigned long root);
+      void createList(void);
+  
     signals:
       void closeSignal(void* widget);
+      void itemSelectionChanged();
 
     private slots:
-      void on_new_node(); // creates a new node in preview mode
-      void on_remove_node(); // removes the focused node
-      void on_add_node(); // adds a node in the simulation, changing its mode to edit mode
-      void on_node_state(); // shows the state dialog for the focused node
-    };
-  
-  } // end of namespace gui
+      virtual void valueChanged(QtProperty *property, const QVariant &value);
+      void selectNodes(void);
+
+    };  } // end of namespace gui
 } // end of namespace mars
 
 #endif // DIALOGNODES_H
