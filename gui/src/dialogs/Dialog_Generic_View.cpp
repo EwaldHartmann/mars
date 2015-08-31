@@ -31,20 +31,23 @@
 #include <QVBoxLayout>
 #include <QScrollArea>
 #include <QGridLayout>
+#include <QString>
 
 namespace mars {
   namespace gui {
-    Dialog_Generic_View::Dialog_Generic_View(interfaces::ControlCenter *c,
-                                         QWidget *parent) : 
+    //Dialog_Generic_View::Dialog_Generic_View(interfaces::ControlCenter *c,
+    //                                     QWidget *parent) : 
+      Dialog_Generic_View::Dialog_Generic_View(interfaces::ControlCenter *c, std::string *list, QWidget *parent) :
       main_gui::BaseWidget(parent, c->cfg, "Dialog_Generic_View"),
       pDialog(new main_gui::PropertyDialog(this)) {
       filled = false;
       control = c;
+      genString = list;
 
       control->graphics->addEventClient((interfaces::GraphicsEventClient*)this);
       control->nodes->getListNodes(&simNodes);
 
-      this->setWindowTitle(tr("Node Selection"));
+      this->setWindowTitle(tr("Dialog_Generic_View"));
       pDialog->setPropCallback(this);
       pDialog->hideAllButtons();
 
@@ -80,16 +83,21 @@ namespace mars {
       line->setFrameShadow(QFrame::Sunken);
       line->setLineWidth(1);
       
+      label2 = new QLabel();
+      QString bla = QString::fromStdString( *genString); 
+      label2->setText(bla);
+      
 
       if (simNodes.size())
         createTree(simNodes[0].index);
 
       QGridLayout *layout = new QGridLayout;
-      layout->addWidget(treeWidget, 0, 0);
+      layout->addWidget(treeWidget, 0, 0, 2, 0);
       layout->addWidget(pDialog, 1, 0);
-      layout->setRowStretch(0, 1);
+      //layout->setRowStretch(0, 1);
       layout->addWidget(line, 0, 2);
       layout->addWidget(label, 0, 3);
+      layout->addWidget(label2, 2, 3);
       setLayout(layout);
       filled = true;
     }

@@ -34,6 +34,7 @@
 #include "MainGUIDefs.h"
 #include <mars/main_gui/MenuInterface.h>
 #include <mars/interfaces/sim/ControlCenter.h>
+#include <mars/interfaces/core_objects_exchange.h>
 
 #include "DialogNodes.h"
 #include "DialogJoints.h"
@@ -119,6 +120,10 @@ namespace mars {
       Dialog_Graphics_Options *dgo;
       Dialog_Motor_Control *dmc;
       Dialog_Generic_View *dgv;
+      
+      //part of a sort-off test for the generic view
+      std::vector<interfaces::core_objects_exchange> simNodes;
+      std::string *nodeList;
 
     private slots:
       void closeWidget(void* widget);

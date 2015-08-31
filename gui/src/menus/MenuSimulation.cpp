@@ -20,6 +20,7 @@
 
 
 #include "MenuSimulation.h"
+//#include <../common/gui/data_broker_plotter/src/qcustomplot/qcustomplot.h>
 
 #include <mars/main_gui/GuiInterface.h>
 
@@ -27,6 +28,8 @@
 #include <mars/interfaces/sim/NodeManagerInterface.h>
 #include <mars/interfaces/sim/MotorManagerInterface.h>
 
+
+#include <boost/lexical_cast.hpp>
 #include <QMessageBox>
 
 namespace mars {
@@ -56,8 +59,8 @@ namespace mars {
 
       dre = NULL; // dialog rescale environment
       dgo = NULL; // dialog graphics options
-
-
+      
+      
 
       std::string tmp1;
   
@@ -465,8 +468,27 @@ namespace mars {
         delete dgv;
         dgv = NULL;
       }
+      
+      //if(simNodes == NULL){
+	control->nodes->getListNodes(&simNodes);
+	nodeList = new std::string;
+	for (std::vector<interfaces::core_objects_exchange>::iterator it = simNodes.begin(); it != simNodes.end(); ++it) {
+	//(interfaces::core_objects_exchange node : simNodes)
+	  nodeList->append("GroupID: ");
+	  nodeList->append(boost::lexical_cast<std::string>(it->groupID));
+	  nodeList->append("\n");
+	  nodeList->append("Index: ");
+	  nodeList->append(boost::lexical_cast<std::string>(it->index));
+	  nodeList->append("\n");
+	  nodeList->append("Name: ");
+	  nodeList->append(it->name);
+	  nodeList->append("\n");
+	}
+      //}
       //create dialog
-      dgv = new Dialog_Generic_View(control); // Dialog_Generic_View(control, mainGui)
+      dgv = new Dialog_Generic_View(control, nodeList); // Dialog_Generic_View(control, mainGui)
+      connect(dgv, SIGNAL(closeSignal(void*)),
+                this, SLOT(closeWidget(void*)));
       mainGui->addDockWidget((void*)dgv->pDialog);
       dgv->show();
      /*}

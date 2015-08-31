@@ -48,7 +48,8 @@ namespace mars {
       Q_OBJECT
 
       public:
-      Dialog_Generic_View(interfaces::ControlCenter *c, QWidget *parent = NULL);
+      //Dialog_Generic_View(interfaces::ControlCenter *c, QWidget *parent = NULL);
+      Dialog_Generic_View(interfaces::ControlCenter *c, std::string *list, QWidget *parent = NULL);
       ~Dialog_Generic_View();
   
       main_gui::PropertyDialog *pDialog;  
@@ -68,7 +69,10 @@ namespace mars {
 
       QTreeWidget *treeWidget;
       QLabel *label;
+      QLabel *label2;
       QFrame *line;
+      std::string *genString;
+      QString bla;
 
       void closeEvent(QCloseEvent* event);
       void fill(unsigned long id, QTreeWidgetItem *current = NULL);
@@ -77,6 +81,7 @@ namespace mars {
       void reset(void);
       void createTree(unsigned long root);
       void createList(void);
+      
   
     signals:
       void closeSignal(void* widget);
